@@ -42,8 +42,13 @@ def analyze_review_sentiments(text):
 def post_review(data_dict):
     request_url = backend_url + "/insert_review"
     try:
-        response = requests.post(request_url, json=data_dict)
-        print(response.json())
+        response = requests.post(
+            request_url,
+            data=__import__("json").dumps(data_dict),
+            headers={"Content-Type": "application/json"}
+        )
+        print(response.text)
+        response.raise_for_status()
         return response.json()
     except Exception as err:
         print(f"Network exception occurred: {err}")

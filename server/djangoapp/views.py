@@ -115,20 +115,43 @@ def get_dealer_reviews(request, dealer_id):
 
 @csrf_exempt
 def add_review(request):
-    if request.method == "POST":
-        if request.user.is_authenticated:
-            data = json.loads(request.body)
-            data["user_id"] = request.user.id
-            response = post_review(data)
+    if request.method != "POST":
+        return JsonResponse(
+            {"status": 405, "message": "Only POST requests are allowed"},
+            status=405
+        )
 
-            if response is not None:
-                return JsonResponse({"status": 200, "message": "Review added successfully"})
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"status": 401, "message": "Unauthorized"},
+            status=401
+        )
 
-            return JsonResponse({"status": 500, "message": "Failed to add review"})
+    data = json.loads(request.body)
+    data["name"] = request.user.get_full_name() or request.user.username
 
-        return JsonResponse({"status": 401, "message": "Unauthorized"})
+    required_fields = [
+        "dealership", "review", "purchase", "purchase_date",
+        "car_make", "car_model", "car_year"
+    ]
 
-    return JsonResponse({"status": 405, "message": "Only POST requests are allowed"})
+    if any(field not in data for field in required_fields):
+        return JsonResponse(
+            {"status": 400, "message": "Missing required review fields"},
+            status=400
+        )
+
+    response = post_review(data)
+
+    if response is not None:
+        return JsonResponse(
+            {"status": 200, "message": "Review added successfully"}
+        )
+
+    return JsonResponse(
+        {"status": 500, "message": "Failed to add review"},
+        status=500
+    )
 
 def get_cars(request):
     count = CarMake.objects.count()
