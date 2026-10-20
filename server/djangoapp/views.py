@@ -15,6 +15,7 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 from .populate import initiate
 from .models import CarMake, CarModel
+from .restapis import get_request, analyze_review_sentiments, post_review
 
 
 # Get an instance of a logger
@@ -80,22 +81,54 @@ def registration(request):
         "message": "Only POST requests are allowed"
     })
 
-# # Update the `get_dealerships` view to render the index page with
-# a list of dealerships
-# def get_dealerships(request):
-# ...
+@csrf_exempt
+def get_dealerships(request, state="All"):
+    if state == "All":
+        endpoint = "/fetchDealers"
+    else:
+        endpoint = "/fetchDealers/" + state
 
-# Create a `get_dealer_reviews` view to render the reviews of a dealer
-# def get_dealer_reviews(request,dealer_id):
-# ...
+    dealerships = get_request(endpoint)
+    return JsonResponse({"status": 200, "dealers": dealerships})
 
-# Create a `get_dealer_details` view to render the dealer details
-# def get_dealer_details(request, dealer_id):
-# ...
 
-# Create a `add_review` view to submit a review
-# def add_review(request):
-# ...
+@csrf_exempt
+def get_dealer_details(request, dealer_id):
+    endpoint = "/fetchDealer/" + str(dealer_id)
+    dealer = get_request(endpoint)
+    return JsonResponse({"status": 200, "dealer": dealer})
+
+
+@csrf_exempt
+def get_dealer_reviews(request, dealer_id):
+    endpoint = "/fetchReviews/dealer/" + str(dealer_id)
+    reviews = get_request(endpoint)
+
+    if reviews:
+        for review in reviews:
+            sentiment = analyze_review_sentiments(review.get("review", ""))
+            if sentiment:
+                review["sentiment"] = sentiment.get("sentiment")
+
+    return JsonResponse({"status": 200, "reviews": reviews})
+
+
+@csrf_exempt
+def add_review(request):
+    if request.method == "POST":
+        if request.user.is_authenticated:
+            data = json.loads(request.body)
+            data["user_id"] = request.user.id
+            response = post_review(data)
+
+            if response is not None:
+                return JsonResponse({"status": 200, "message": "Review added successfully"})
+
+            return JsonResponse({"status": 500, "message": "Failed to add review"})
+
+        return JsonResponse({"status": 401, "message": "Unauthorized"})
+
+    return JsonResponse({"status": 405, "message": "Only POST requests are allowed"})
 
 def get_cars(request):
     count = CarMake.objects.count()
