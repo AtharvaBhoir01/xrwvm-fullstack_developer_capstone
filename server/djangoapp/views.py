@@ -2,9 +2,9 @@
 
 # from django.shortcuts import render
 # from django.http import HttpResponseRedirect, HttpResponse
-# from django.contrib.auth.models import User
+from django.contrib.auth.models import User
 # from django.shortcuts import get_object_or_404, render, redirect
-# from django.contrib.auth import logout
+from django.contrib.auth import logout
 # from django.contrib import messages
 # from datetime import datetime
 
@@ -38,14 +38,46 @@ def login_user(request):
         data = {"userName": username, "status": "Authenticated"}
     return JsonResponse(data)
 
-# Create a `logout_request` view to handle sign out request
-# def logout_request(request):
-# ...
+def logout_request(request):
+    logout(request)
+    return JsonResponse({"userName": ""})
 
-# Create a `registration` view to handle sign up request
-# @csrf_exempt
-# def registration(request):
-# ...
+@csrf_exempt
+def registration(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        username = data["userName"]
+        password = data["password"]
+        first_name = data["firstName"]
+        last_name = data["lastName"]
+        email = data["email"]
+
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({
+                "userName": username,
+                "status": False,
+                "message": "Username already exists"
+            })
+
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            email=email
+        )
+
+        login(request, user)
+
+        return JsonResponse({
+            "userName": username,
+            "status": True
+        })
+
+    return JsonResponse({
+        "status": False,
+        "message": "Only POST requests are allowed"
+    })
 
 # # Update the `get_dealerships` view to render the index page with
 # a list of dealerships
