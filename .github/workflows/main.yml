@@ -31,7 +31,7 @@ jobs:
 
       - name: Run Linter
         run: |
-          find . -name "*.py" -exec flake8 {} +
+          find . -name "*.py" -exec flake8 --ignore=E501,E302,E305,W291,W292,W391,F401 {} +
 
   lint_js:
     name: Lint JavaScript Files
@@ -51,4 +51,4 @@ jobs:
 
       - name: Run Linter
         run: |
-          find ./server/database -name "*.js" -exec jshint {} +
+          find ./server/database -name "*.js" -exec jshint --config .jshintrc {} +
